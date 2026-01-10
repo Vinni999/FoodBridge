@@ -10,14 +10,27 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+
         http
+            // Disable CSRF for Postman / REST APIs
             .csrf(csrf -> csrf.disable())
+
+            // Authorization rules
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/health").permitAll()
+                .requestMatchers(
+                    "/api/health",
+                    "/api/auth/**"
+                ).permitAll()
                 .anyRequest().authenticated()
             )
-            .formLogin(form -> form.disable())   // disable login page
-            .httpBasic(basic -> basic.disable()); // disable basic auth
+         // Day 9: testing git change
+
+
+            // Disable default login page
+            .formLogin(form -> form.disable())
+
+            // Disable basic auth popup
+            .httpBasic(basic -> basic.disable());
 
         return http.build();
     }
