@@ -1,4 +1,4 @@
-package com.foodbridges.repositary;
+package com.foodbridges.repository;
 
 import java.util.Optional;
 

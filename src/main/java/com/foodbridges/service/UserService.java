@@ -4,7 +4,7 @@ import org.springframework.stereotype.Service;
 
 import com.foodbridges.dto.RegisterRequest;
 import com.foodbridges.entity.User;
-import com.foodbridges.repositary.UserRepository;
+import com.foodbridges.repository.UserRepository;
 
 @Service
 public class UserService {
@@ -15,19 +15,17 @@ public class UserService {
         this.userRepository = userRepository;
     }
 
-    public User register(RegisterRequest req) {
+    public User register(RegisterRequest request) {
+        userRepository.findByEmail(request.getEmail()).ifPresent(u -> {
+            throw new RuntimeException("Email already exists: " + request.getEmail());
+        });
 
-        if (userRepository.existsByEmail(req.getEmail())) {
-            throw new RuntimeException("Email already exists");
-        }
-
-        User user = new User(
-                req.getName(),
-                req.getEmail(),
-                req.getPassword(), 
-                req.getRole(),
-                req.getPhone()
-        );
+        User user = new User();
+        user.setName(request.getName());
+        user.setEmail(request.getEmail());
+        user.setPassword(request.getPassword()); // for now plain text
+        user.setPhone(request.getPhone());
+        user.setRole(request.getRole());
 
         return userRepository.save(user);
     }
