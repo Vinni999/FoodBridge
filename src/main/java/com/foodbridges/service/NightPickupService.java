@@ -10,6 +10,7 @@ import com.foodbridges.entity.FoodStatus;
 import com.foodbridges.entity.NightPickup;
 import com.foodbridges.repository.FoodRepository;
 import com.foodbridges.repository.NightPickupRepository;
+import com.foodbridges.service.EmailService;
 
 @Service
 public class NightPickupService {
@@ -17,11 +18,17 @@ public class NightPickupService {
     private final NightPickupRepository nightPickupRepository;
     private final FoodRepository foodRepository;
 
-    public NightPickupService(NightPickupRepository nightPickupRepository,
-                              FoodRepository foodRepository) {
+    private final EmailService emailService;
+
+    public NightPickupService(
+            NightPickupRepository nightPickupRepository,
+            FoodRepository foodRepository,
+            EmailService emailService) {
         this.nightPickupRepository = nightPickupRepository;
         this.foodRepository = foodRepository;
+        this.emailService = emailService;
     }
+
 
     @Transactional
     public String verifyPickupPin(Long foodId, String enteredPin) {
