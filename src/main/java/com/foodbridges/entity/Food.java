@@ -2,7 +2,15 @@ package com.foodbridges.entity;
 
 import java.time.LocalDateTime;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.Table;
 
 @Entity
 @Table(name = "foods")
@@ -36,6 +44,22 @@ public class Food {
 	@Enumerated(EnumType.STRING)
 	@Column(name = "status")
 	private FoodStatus status;
+
+	@Column(name="latitude")
+	private Double latitude;
+
+	@Column(name="longitude")
+	private Double longitude;
+
+	private Long requestId;
+	private Long assignedVolunteerId;
+
+	public Long getRequestId() { return requestId; }
+	public void setRequestId(Long requestId) { this.requestId = requestId; }
+
+	public Long getAssignedVolunteerId() { return assignedVolunteerId; }
+	public void setAssignedVolunteerId(Long assignedVolunteerId) { this.assignedVolunteerId = assignedVolunteerId; }
+
 
 	@PrePersist
 	public void prePersist() {
@@ -118,4 +142,22 @@ public class Food {
 	public void setStatus(FoodStatus status) {
 		this.status = status;
 	}
+	public Double getLatitude() {
+	    return latitude;
+	}
+
+	public void setLatitude(Double latitude) {
+	    this.latitude = latitude;
+	}
+
+	public Double getLongitude() {
+	    return longitude;
+	}
+
+	public void setLongitude(Double longitude) {
+	    this.longitude = longitude;
+
+	}
+
+
 }

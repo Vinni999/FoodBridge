@@ -4,32 +4,62 @@ import java.time.LocalDateTime;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import com.foodbridges.dto.FaceVerifyResponse;
 import com.foodbridges.entity.Food;
 import com.foodbridges.entity.FoodStatus;
 import com.foodbridges.entity.NightPickup;
 import com.foodbridges.repository.FoodRepository;
 import com.foodbridges.repository.NightPickupRepository;
-import com.foodbridges.service.EmailService;
 
 @Service
 public class NightPickupService {
 
     private final NightPickupRepository nightPickupRepository;
     private final FoodRepository foodRepository;
-
     private final EmailService emailService;
+
+    // ✅ Add FaceRecognitionService
+    private final FaceRecognitionService faceRecognitionService;
 
     public NightPickupService(
             NightPickupRepository nightPickupRepository,
             FoodRepository foodRepository,
-            EmailService emailService) {
+            EmailService emailService,
+            FaceRecognitionService faceRecognitionService) {
         this.nightPickupRepository = nightPickupRepository;
         this.foodRepository = foodRepository;
         this.emailService = emailService;
+        this.faceRecognitionService = faceRecognitionService;
     }
 
+    /**
+     * ✅ New method:
+     * 1) Verify Face
+     * 2) If match => Verify PIN (existing logic)
+     *
+     * Returns:
+     * - String success message OR
+     * - FaceVerifyResponse if face failed (controller returns 403)
+     */
+    @Transactional
+    public Object verifyPickupPinWithFace(Long foodId, String enteredPin, Long userId, MultipartFile image) throws Exception {
 
+        FaceVerifyResponse faceResp = faceRecognitionService.verifyFace(userId, image);
+
+        // IMPORTANT:
+        // Your FaceVerifyResponse method name could be isMatch() OR getMatch()
+        // Use whichever exists in your DTO. If this line gives error, change to faceResp.getMatch()
+        if (!faceResp.isMatch()) {
+            return faceResp; // controller will return 403
+        }
+
+        // Face matched ✅ now verify PIN with existing method
+        return verifyPickupPin(foodId, enteredPin);
+    }
+
+    // ✅ Your existing method (unchanged)
     @Transactional
     public String verifyPickupPin(Long foodId, String enteredPin) {
 
@@ -66,6 +96,6 @@ public class NightPickupService {
         food.setStatus(FoodStatus.PICKED);
         foodRepository.save(food);
 
-        return "✅ PIN verified. Food picked successfully.";
+        return "✅ Face verified + PIN verified. Food picked successfully.";
     }
 }

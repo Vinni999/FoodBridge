@@ -1,11 +1,10 @@
 package com.foodbridges.service;
 
-import java.time.LocalDateTime;
-
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import com.foodbridges.dto.CreateRequestDto;
 import com.foodbridges.entity.Delivery;
-import com.foodbridges.entity.DeliveryStatus;
 import com.foodbridges.entity.Food;
 import com.foodbridges.entity.FoodRequest;
 import com.foodbridges.entity.FoodStatus;
@@ -17,94 +16,110 @@ import com.foodbridges.repository.FoodRequestRepository;
 @Service
 public class RequestDeliveryService {
 
-	private final FoodRepository foodRepository;
-	private final FoodRequestRepository requestRepository;
-	private final DeliveryRepository deliveryRepository;
+    private final FoodRepository foodRepository;
+    private final FoodRequestRepository requestRepository;
+    private final DeliveryRepository deliveryRepository;   // ✅ ADD
 
-	public RequestDeliveryService(FoodRepository foodRepository, FoodRequestRepository requestRepository,
-			DeliveryRepository deliveryRepository) {
-		this.foodRepository = foodRepository;
-		this.requestRepository = requestRepository;
-		this.deliveryRepository = deliveryRepository;
-	}
+    public RequestDeliveryService(FoodRepository foodRepository,
+                                  FoodRequestRepository requestRepository,
+                                  DeliveryRepository deliveryRepository) {  // ✅ ADD
+        this.foodRepository = foodRepository;
+        this.requestRepository = requestRepository;
+        this.deliveryRepository = deliveryRepository;      // ✅ ADD
+    }
 
-	public FoodRequest createRequest(Long foodId, Long receiverId) {
-		Food food = foodRepository.findById(foodId).orElseThrow(() -> new RuntimeException("Food not found"));
+    @Transactional
+    public Long createRequest(CreateRequestDto dto) {
 
-		if (food.getStatus() != FoodStatus.AVAILABLE) {
-			throw new RuntimeException("Food not available");
-		}
+        Food food = foodRepository.findById(dto.getFoodId())
+                .orElseThrow(() -> new RuntimeException("Food not found: " + dto.getFoodId()));
 
-		FoodRequest req = new FoodRequest();
-		req.setFoodId(foodId);
-		req.setReceiverId(receiverId);
-		req.setStatus(RequestStatus.REQUESTED);
-		req.setRequestedAt(LocalDateTime.now());
-		food.setStatus(FoodStatus.REQUESTED);
-		foodRepository.save(food);
+        if (food.getStatus() != FoodStatus.AVAILABLE) {
+            throw new RuntimeException("Food is not AVAILABLE. Current status: " + food.getStatus());
+        }
 
-		return requestRepository.save(req);
-	}
+        food.setStatus(FoodStatus.REQUESTED);
+        foodRepository.save(food);
 
-	public FoodRequest approveRequest(Long requestId) {
-		FoodRequest req = requestRepository.findById(requestId)
-				.orElseThrow(() -> new RuntimeException("Request not found"));
+        FoodRequest req = new FoodRequest();
+        req.setFoodId(dto.getFoodId());
+        req.setReceiverId(dto.getReceiverId());
+        req.setLatitude(dto.getLatitude());
+        req.setLongitude(dto.getLongitude());
+        req.setStatus(RequestStatus.REQUESTED);
 
-		req.setStatus(RequestStatus.APPROVED);
-		return requestRepository.save(req);
-	}
+        FoodRequest saved = requestRepository.save(req);
+        return saved.getId();
+    }
 
-	public Delivery assignVolunteer(Long requestId, Long volunteerId) {
-		FoodRequest req = requestRepository.findById(requestId)
-				.orElseThrow(() -> new RuntimeException("Request not found"));
+    @Transactional
+    public void accept(Long foodId, Long volunteerId) {
 
-		if (req.getStatus() != RequestStatus.APPROVED) {
-			throw new RuntimeException("Request must be APPROVED first");
-		}
+        Food food = foodRepository.findById(foodId)
+                .orElseThrow(() -> new RuntimeException("Food not found: " + foodId));
 
-		Delivery d = new Delivery();
-		d.setRequestId(req.getId());
-		d.setFoodId(req.getFoodId());
-		d.setVolunteerId(volunteerId);
-		d.setStatus(DeliveryStatus.ASSIGNED);
-		d.setAssignedAt(LocalDateTime.now());
-		Food food = foodRepository.findById(req.getFoodId()).orElseThrow(() -> new RuntimeException("Food not found"));
-		food.setStatus(FoodStatus.REQUESTED);
-		foodRepository.save(food);
+        if (food.getStatus() != FoodStatus.REQUESTED) {
+            throw new RuntimeException("Food must be REQUESTED to accept. Current: " + food.getStatus());
+        }
 
-		return deliveryRepository.save(d);
-	}
+        FoodRequest req = requestRepository.findTopByFoodIdOrderByIdDesc(foodId)
+                .orElseThrow(() -> new RuntimeException("Request not found for Food: " + foodId));
 
-	public Delivery markPickedUp(Long deliveryId) {
-		Delivery d = deliveryRepository.findById(deliveryId)
-				.orElseThrow(() -> new RuntimeException("Delivery not found"));
+        req.setStatus(RequestStatus.APPROVED);
+        requestRepository.save(req);
 
-		d.setStatus(DeliveryStatus.PICKED_UP);
-		d.setPickedUpAt(LocalDateTime.now());
+        foodRepository.save(food);
+    }
 
-		Food food = foodRepository.findById(d.getFoodId()).orElseThrow(() -> new RuntimeException("Food not found"));
-		food.setStatus(FoodStatus.PICKED);
-		foodRepository.save(food);
+    @Transactional
+    public void reject(Long foodId) {
 
-		return deliveryRepository.save(d);
-	}
+        Food food = foodRepository.findById(foodId)
+                .orElseThrow(() -> new RuntimeException("Food not found: " + foodId));
 
-	public Delivery markDelivered(Long deliveryId) {
-		Delivery d = deliveryRepository.findById(deliveryId)
-				.orElseThrow(() -> new RuntimeException("Delivery not found"));
+        FoodRequest req = requestRepository.findTopByFoodIdOrderByIdDesc(foodId)
+                .orElseThrow(() -> new RuntimeException("Request not found for Food: " + foodId));
 
-		d.setStatus(DeliveryStatus.DELIVERED);
-		d.setDeliveredAt(LocalDateTime.now());
+        req.setStatus(RequestStatus.REJECTED);
+        requestRepository.save(req);
 
-		Food food = foodRepository.findById(d.getFoodId()).orElseThrow(() -> new RuntimeException("Food not found"));
-		food.setStatus(FoodStatus.DELIVERED);
-		foodRepository.save(food);
+        food.setStatus(FoodStatus.AVAILABLE);
+        foodRepository.save(food);
+    }
 
-		FoodRequest req = requestRepository.findById(d.getRequestId())
-				.orElseThrow(() -> new RuntimeException("Request not found"));
-		req.setStatus(RequestStatus.COMPLETED);
-		requestRepository.save(req);
+    // ✅ 4) Update Food status from UI (PICKED / DELIVERED)
+    @Transactional
+    public void updateFoodStatus(Long foodId, String status) {
 
-		return deliveryRepository.save(d);
-	}
+        Food food = foodRepository.findById(foodId)
+                .orElseThrow(() -> new RuntimeException("Food not found: " + foodId));
+
+        FoodStatus newStatus;
+        try {
+            newStatus = FoodStatus.valueOf(status.toUpperCase());
+        } catch (Exception e) {
+            throw new RuntimeException("Invalid FoodStatus: " + status);
+        }
+
+        // 🔐 FACE CHECK — only when DELIVERED
+        if (newStatus == FoodStatus.DELIVERED) {
+
+            Delivery delivery = deliveryRepository.findTopByFoodIdOrderByIdDesc(foodId)
+                    .orElseThrow(() -> new RuntimeException("Delivery not found for foodId: " + foodId));
+
+            if (!delivery.isFaceVerified()) {
+                throw new RuntimeException("Face verification required before completing delivery.");
+            }
+        }
+
+        food.setStatus(newStatus);
+        foodRepository.save(food);
+
+        requestRepository.findTopByFoodIdOrderByIdDesc(foodId).ifPresent(req -> {
+            if (newStatus == FoodStatus.DELIVERED) {
+                req.setStatus(RequestStatus.COMPLETED);
+                requestRepository.save(req);
+            }
+        });
+    }
 }

@@ -2,7 +2,13 @@ package com.foodbridges.entity;
 
 import java.time.LocalDateTime;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 
 @Entity
 @Table(name = "deliveries")
@@ -11,8 +17,15 @@ public class Delivery {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+    private boolean faceVerified;
 
-    private Long requestId;
+    public boolean isFaceVerified() {
+		return faceVerified;
+	}
+	public void setFaceVerified(boolean faceVerified) {
+		this.faceVerified = faceVerified;
+	}
+	private Long requestId;
     private Long foodId;
     private Long volunteerId;
 

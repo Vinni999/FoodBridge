@@ -14,39 +14,48 @@ import com.foodbridges.service.EmailService;
 @Service
 public class FoodExpiryScheduler {
 
-	private final FoodRepository foodRepository;
+    private final FoodRepository foodRepository;
+    private final EmailService emailService;
 
-	private final EmailService emailService;
+    public FoodExpiryScheduler(FoodRepository foodRepository, EmailService emailService) {
+        this.foodRepository = foodRepository;
+        this.emailService = emailService;
+    }
 
-	public FoodExpiryScheduler(FoodRepository foodRepository, EmailService emailService) {
-	    this.foodRepository = foodRepository;
-	    this.emailService = emailService;
-	}
+    // runs every 2 minutes
+    @Scheduled(fixedRate = 120000)
+    public void expireFoods() {
 
+        List<Food> toExpire =
+                foodRepository.findByStatusAndExpiryTimeBefore(
+                        FoodStatus.AVAILABLE,
+                        LocalDateTime.now()
+                );
 
-	@Scheduled(fixedRate = 120000)
-	public void expireFoods() {
+        if (toExpire.isEmpty()) {
+            return;
+        }
 
-		List<Food> toExpire = foodRepository.findByStatusAndExpiryTimeBefore(FoodStatus.AVAILABLE, LocalDateTime.now());
+        for (Food food : toExpire) {
+            // ✅ update status
+            food.setStatus(FoodStatus.EXPIRED);
+            foodRepository.save(food);
 
-		if (toExpire.isEmpty())
-			return;
+            // ✅ SAFE email sending (won't break scheduler)
+            try {
+                emailService.sendEmail(
+                        "donor@example.com",
+                        "Food Expired",
+                        "Your food '" + food.getFoodName() +
+                        "' has expired and is no longer available."
+                );
+            } catch (Exception e) {
+                System.out.println(
+                    "📧 Email skipped (SMTP / rate limit issue): " + e.getMessage()
+                );
+            }
+        }
 
-		for (Food food : toExpire) {
-			food.setStatus(FoodStatus.EXPIRED);
-			foodRepository.save(food);
-
-			// ✅ Expiry email
-			emailService.sendEmail(
-			    "donor@example.com",
-			    "Food Expired",
-			    "Your food '" + food.getFoodName() +
-			    "' has expired and is no longer available."
-			);
-
-		}
-
-		foodRepository.saveAll(toExpire);
-		System.out.println("✅ Auto-expired foods: " + toExpire.size());
-	}
+        System.out.println("✅ Auto-expired foods: " + toExpire.size());
+    }
 }
