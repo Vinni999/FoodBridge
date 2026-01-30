@@ -14,11 +14,10 @@ public class DeliveryTrackingService {
         this.repository = repository;
     }
 
-    public DeliveryTracking updateLocation(
-            Long requestId,
-            Long volunteerId,
-            Double latitude,
-            Double longitude) {
+    public DeliveryTracking updateLocation(Long requestId,
+                                           Long volunteerId,
+                                           Double latitude,
+                                           Double longitude) {
 
         DeliveryTracking tracking = new DeliveryTracking();
         tracking.setRequestId(requestId);
@@ -31,7 +30,7 @@ public class DeliveryTrackingService {
 
     public DeliveryTracking getLatestLocation(Long requestId) {
         return repository
-                .findTopByRequestIdOrderByUpdatedAtDesc(requestId)
+                .findTopByRequestIdOrderByTrackedAtDesc(requestId)
                 .orElse(null);
     }
 }

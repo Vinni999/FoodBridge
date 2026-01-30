@@ -46,8 +46,8 @@ public class DeliveryTrackingController {
 
         DeliveryTracking latest = service.getLatestLocation(requestId);
         if (latest == null) {
-			return ResponseEntity.ok(null);
-		}
+            return ResponseEntity.noContent().build();
+        }
 
         TrackingLatestResponse res = new TrackingLatestResponse();
         res.setRequestId(requestId);
@@ -55,7 +55,6 @@ public class DeliveryTrackingController {
         res.setLatitude(latest.getLatitude());
         res.setLongitude(latest.getLongitude());
 
-        // ✅ Use correct timestamp
         if (latest.getTrackedAt() != null) {
             res.setTrackedAt(latest.getTrackedAt());
         }
@@ -68,5 +67,6 @@ public class DeliveryTrackingController {
 
         return ResponseEntity.ok(res);
     }
+
 
 }

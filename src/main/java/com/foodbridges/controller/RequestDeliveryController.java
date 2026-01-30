@@ -9,7 +9,11 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.foodbridges.dto.CreateRequestDto;
+import com.foodbridges.dto.RequestStatusDto;
 import com.foodbridges.service.RequestDeliveryService;
+import org.springframework.web.bind.annotation.GetMapping;
+
+
 
 @RestController
 @CrossOrigin(origins = "*")
@@ -50,6 +54,10 @@ public class RequestDeliveryController {
         Long foodId = id; // for demo: id acts as foodId
         requestService.accept(foodId, volunteerId);
         return ResponseEntity.ok("APPROVED");
+    }
+    @GetMapping("/api/requests/{requestId}/status")
+    public ResponseEntity<RequestStatusDto> getStatus(@PathVariable Long requestId) {
+        return ResponseEntity.ok(requestService.getRequestStatus(requestId));
     }
 
     // ✅ OLD reject (optional helper)

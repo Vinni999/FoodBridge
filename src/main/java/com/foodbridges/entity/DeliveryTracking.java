@@ -1,7 +1,6 @@
 package com.foodbridges.entity;
 
 import java.time.LocalDateTime;
-
 import jakarta.persistence.*;
 
 @Entity
@@ -12,25 +11,24 @@ public class DeliveryTracking {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name="request_id")
     private Long requestId;
+
+    @Column(name="volunteer_id")
     private Long volunteerId;
 
     private Double latitude;
     private Double longitude;
 
-    // optional: when the tracking point was recorded
     @Column(name = "tracked_at")
     private LocalDateTime trackedAt;
 
-    // ✅ IMPORTANT: match DB column updated_at
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
     @PrePersist
     public void onCreate() {
-        if (trackedAt == null) {
-            trackedAt = LocalDateTime.now();
-        }
+        if (trackedAt == null) trackedAt = LocalDateTime.now();
         updatedAt = LocalDateTime.now();
     }
 
@@ -57,7 +55,6 @@ public class DeliveryTracking {
     public LocalDateTime getTrackedAt() { return trackedAt; }
     public void setTrackedAt(LocalDateTime trackedAt) { this.trackedAt = trackedAt; }
 
-    // ✅ ADD THESE (missing in your file)
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
 }

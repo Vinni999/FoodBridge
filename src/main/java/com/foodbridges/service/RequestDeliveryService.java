@@ -1,9 +1,12 @@
 package com.foodbridges.service;
 
+import java.time.LocalDateTime;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.foodbridges.dto.CreateRequestDto;
+import com.foodbridges.dto.RequestStatusDto;
 import com.foodbridges.entity.Delivery;
 import com.foodbridges.entity.Food;
 import com.foodbridges.entity.FoodRequest;
@@ -18,14 +21,46 @@ public class RequestDeliveryService {
 
     private final FoodRepository foodRepository;
     private final FoodRequestRepository requestRepository;
-    private final DeliveryRepository deliveryRepository;   // ✅ ADD
+    private final DeliveryRepository deliveryRepository;
 
     public RequestDeliveryService(FoodRepository foodRepository,
                                   FoodRequestRepository requestRepository,
-                                  DeliveryRepository deliveryRepository) {  // ✅ ADD
+                                  DeliveryRepository deliveryRepository) {
         this.foodRepository = foodRepository;
         this.requestRepository = requestRepository;
-        this.deliveryRepository = deliveryRepository;      // ✅ ADD
+        this.deliveryRepository = deliveryRepository;
+    }
+
+    /* =========================================================
+       ✅ NEW: GET STATUS for Tracking Page (Request ID -> Status)
+       Endpoint will call: requestService.getRequestStatus(requestId)
+       ========================================================= */
+    @Transactional(readOnly = true)
+    public RequestStatusDto getRequestStatus(Long requestId) {
+
+        FoodRequest req = requestRepository.findById(requestId)
+                .orElseThrow(() -> new RuntimeException("Request not found: " + requestId));
+
+        // 1) Request status (REQUESTED / APPROVED / REJECTED / COMPLETED)
+        String requestStatus = (req.getStatus() != null) ? req.getStatus().name() : "UNKNOWN";
+
+        // 2) Food status (AVAILABLE / REQUESTED / PICKED / DELIVERED / EXPIRED)
+        String foodStatus = "UNKNOWN";
+        if (req.getFoodId() != null) {
+            Food food = foodRepository.findById(req.getFoodId()).orElse(null);
+            if (food != null && food.getStatus() != null) {
+                foodStatus = food.getStatus().name();
+            }
+        }
+
+        // you don't have updatedAt in entity => use current time
+        LocalDateTime updatedAt = LocalDateTime.now();
+
+        // ✅ For UI, it's better to show foodStatus as main delivery status
+        // but we return both inside one string OR you can extend DTO later.
+        String finalStatus = "REQUEST=" + requestStatus + " | FOOD=" + foodStatus;
+
+        return new RequestStatusDto(finalStatus, updatedAt);
     }
 
     @Transactional
@@ -68,6 +103,8 @@ public class RequestDeliveryService {
         req.setStatus(RequestStatus.APPROVED);
         requestRepository.save(req);
 
+        // (Optional) You can keep food as REQUESTED until PICKED
+        // food.setStatus(FoodStatus.REQUESTED);
         foodRepository.save(food);
     }
 
@@ -87,7 +124,7 @@ public class RequestDeliveryService {
         foodRepository.save(food);
     }
 
-    // ✅ 4) Update Food status from UI (PICKED / DELIVERED)
+    // ✅ Update Food status from UI (PICKED / DELIVERED)
     @Transactional
     public void updateFoodStatus(Long foodId, String status) {
 
