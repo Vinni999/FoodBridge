@@ -1,12 +1,7 @@
 package com.foodbridges.controller;
 
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import com.foodbridges.dto.CreateRequestDto;
 import com.foodbridges.service.RequestDeliveryService;
@@ -22,7 +17,7 @@ public class FoodRequestController {
         this.service = service;
     }
 
-    // ✅ POST /api/request/create   (Body JSON)
+    // ✅ POST /api/request/create  (Body JSON)
     @PostMapping("/create")
     public ResponseEntity<Long> create(@RequestBody CreateRequestDto dto) {
         Long requestId = service.createRequest(dto);
@@ -34,13 +29,13 @@ public class FoodRequestController {
     public ResponseEntity<String> accept(@RequestParam Long foodId,
                                          @RequestParam Long volunteerId) {
         service.accept(foodId, volunteerId);
-        return ResponseEntity.ok("APPROVED");
+        return ResponseEntity.ok("ASSIGNED");
     }
 
     // ✅ POST /api/request/reject?foodId=
     @PostMapping("/reject")
     public ResponseEntity<String> reject(@RequestParam Long foodId) {
-        service.reject(foodId);
+        service.reject(foodId);   // ✅ ensure this exists in service
         return ResponseEntity.ok("REJECTED");
     }
 
