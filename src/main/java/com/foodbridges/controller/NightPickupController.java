@@ -21,6 +21,11 @@ public class NightPickupController {
         this.faceRecognitionService = faceRecognitionService;
     }
 
+    @PostMapping("/generate-pin")
+    public ResponseEntity<String> generatePin(@RequestParam Long foodId) {
+        return ResponseEntity.ok(nightPickupService.generatePickupPin(foodId));
+    }
+
     // ✅ Existing PIN-only API (keep for backward compatibility)
     @PostMapping("/verify-pin")
     public ResponseEntity<String> verifyPin(@RequestParam Long foodId,
